@@ -2,7 +2,7 @@
 
 판교테크노밸리 공지사항에서 **스타트업캠퍼스 구내식당 주간 식단표**를 찾아 Slack 채널에 자동으로 올리는 GitHub Actions 템플릿입니다.
 
-매주 한 번 GitHub Actions가 실행되고, Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보냅니다.
+평일 10:30, 13:30, 16:30 KST에 식단표를 확인하고, 새 주차이거나 원본 첨부가 바뀌었을 때 Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보냅니다.
 
 <img src="docs/startupcampus-menu-sample.png" alt="스타트업캠퍼스 구내식당 식단표 샘플" width="720">
 
@@ -16,9 +16,9 @@
 https://github.com/Acacia-AbleJ/startupcampus-menu-slack
 
 목표:
-- 매주 월요일 10:30 KST에 GitHub Actions가 실행된다.
+- 평일 10:30, 13:30, 16:30 KST에 GitHub Actions가 실행된다.
 - 판교테크노밸리 공지사항에서 이번 주 스타트업캠퍼스 식단표 첨부를 찾는다.
-- Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보낸다.
+- 새 주차이거나 원본 첨부가 바뀌었을 때 Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보낸다.
 
 작업:
 - 필요한 workflow, script, dependency 파일을 복사하거나 현재 저장소 구조에 맞게 병합한다.
@@ -31,11 +31,12 @@ https://github.com/Acacia-AbleJ/startupcampus-menu-slack
 ## How It Works
 
 ```text
-매주 월요일 10:30 KST
+평일 10:30, 13:30, 16:30 KST
 → 판교테크노밸리 공지사항 목록 조회
 → 이번 주 구내식당 주간메뉴표 게시글 선택
 → 스타트업캠퍼스 첨부 선택
-→ Slack 채널에 이미지/파일 링크 전송
+→ 지난 전송 기록과 비교
+→ 새 주차이거나 첨부가 바뀌었으면 Slack 채널에 이미지/파일 링크 전송
 ```
 
 첨부가 PNG/JPG/GIF이면 Slack에 이미지로 표시합니다. PDF이면 원본 파일 링크를 보냅니다.
@@ -67,7 +68,7 @@ Value: https://hooks.slack.com/services/...
 
 ### 3. 테스트 실행
 
-GitHub 저장소의 `Actions` 탭에서 `Weekly Startup Campus Menu`를 선택한 뒤 `Run workflow`를 실행합니다.
+GitHub 저장소의 `Actions` 탭에서 `Startup Campus Menu`를 선택한 뒤 `Run workflow`를 실행합니다.
 
 성공하면 Slack 채널에 식단표 메시지가 올라옵니다.
 
@@ -102,16 +103,18 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..." python scripts/post_men
 | `MENU_BOARD_URL` | 판교테크노밸리 공지사항 | 식단표 공지사항 목록 URL |
 | `MENU_TIMEZONE` | `Asia/Seoul` | 이번 주 계산에 사용할 시간대 |
 | `POST_LOOKBACK_DAYS` | `0` | 이번 주 월요일보다 며칠 전 게시글까지 허용할지 |
+| `MENU_STATE_PATH` | `.menu-state/startupcampus-menu.json` | 마지막 전송 기록 파일 |
+| `FORCE_POST` | `false` | 같은 첨부여도 강제로 전송할지 |
 | `BOT_USER_AGENT` | built in | 사이트 요청에 사용할 User-Agent |
 
 ## Schedule
 
-기본 workflow는 월요일 10:30 KST에 실행됩니다. GitHub Actions cron은 UTC 기준이므로 `30 1 * * 1`을 사용합니다.
+기본 workflow는 평일 10:30, 13:30, 16:30 KST에 실행됩니다. GitHub Actions cron은 UTC 기준이므로 `30 1,4,7 * * 1-5`를 사용합니다.
 
 ```yaml
 on:
   schedule:
-    - cron: "30 1 * * 1"
+    - cron: "30 1,4,7 * * 1-5"
 ```
 
 ## Security

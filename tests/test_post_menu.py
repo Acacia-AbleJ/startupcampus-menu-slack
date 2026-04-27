@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import unittest
 from datetime import date
+from pathlib import Path
 
 from scripts.post_menu import (
     AttachmentCandidate,
@@ -11,6 +12,7 @@ from scripts.post_menu import (
     choose_post,
     normalize,
     score_attachment_candidate,
+    success_post_reason,
 )
 
 
@@ -52,6 +54,29 @@ class PostMenuTest(unittest.TestCase):
 
         self.assertEqual(choose_attachment(candidates, config, post).url, "https://example.com/2")
 
+    def test_success_post_reason_skips_unchanged_attachment(self) -> None:
+        state = {
+            "status": "success",
+            "week_start": "2026-04-27",
+            "attachment": {"sha256": "abc"},
+        }
+
+        self.assertIsNone(success_post_reason(state, state, force_post=False))
+
+    def test_success_post_reason_detects_changed_attachment(self) -> None:
+        previous = {
+            "status": "success",
+            "week_start": "2026-04-27",
+            "attachment": {"sha256": "abc"},
+        }
+        current = {
+            "status": "success",
+            "week_start": "2026-04-27",
+            "attachment": {"sha256": "def"},
+        }
+
+        self.assertEqual(success_post_reason(previous, current, force_post=False), "changed")
+
 
 def make_config() -> Config:
     return Config(
@@ -64,6 +89,9 @@ def make_config() -> Config:
         post_min_semantic_score=50,
         post_min_total_score=120,
         attachment_min_score=80,
+        state_path=Path(".menu-state/test.json"),
+        force_post=False,
+        notify_failures=True,
         dry_run=True,
     )
 

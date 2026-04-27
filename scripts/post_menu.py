@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import re
@@ -9,6 +10,7 @@ import sys
 import unicodedata
 from dataclasses import dataclass
 from datetime import date, datetime, timedelta
+from pathlib import Path
 from typing import Iterable
 from urllib.parse import urljoin
 from zoneinfo import ZoneInfo
@@ -28,6 +30,7 @@ DEFAULT_USER_AGENT = (
     "+https://github.com/your-org/startupcampus-menu-slack)"
 )
 
+DEFAULT_STATE_PATH = ".menu-state/startupcampus-menu.json"
 IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".gif")
 SUPPORTED_EXTENSIONS = IMAGE_EXTENSIONS + (".pdf",)
 
@@ -43,6 +46,9 @@ class Config:
     post_min_semantic_score: int
     post_min_total_score: int
     attachment_min_score: int
+    state_path: Path
+    force_post: bool
+    notify_failures: bool
     dry_run: bool
 
 
@@ -73,6 +79,8 @@ class MenuResult:
     post: PostCandidate
     attachment: AttachmentCandidate
     board_url: str
+    attachment_sha256: str
+    attachment_size: int
 
 
 @dataclass(frozen=True)
@@ -299,8 +307,15 @@ def discover_menu(config: Config) -> MenuResult:
 
     detail_html = fetch_text(session, post.url)
     attachment = choose_attachment(collect_attachment_candidates(detail_html, post.url), config, post)
+    attachment_bytes = fetch_bytes(session, attachment.url)
 
-    return MenuResult(post=post, attachment=attachment, board_url=config.board_url)
+    return MenuResult(
+        post=post,
+        attachment=attachment,
+        board_url=config.board_url,
+        attachment_sha256=hashlib.sha256(attachment_bytes).hexdigest(),
+        attachment_size=len(attachment_bytes),
+    )
 
 
 def fetch_text(session: requests.Session, url: str) -> str:
@@ -311,10 +326,17 @@ def fetch_text(session: requests.Session, url: str) -> str:
     return response.text
 
 
-def build_success_payload(result: MenuResult) -> dict:
+def fetch_bytes(session: requests.Session, url: str) -> bytes:
+    response = session.get(url, timeout=20)
+    response.raise_for_status()
+    return response.content
+
+
+def build_success_payload(result: MenuResult, reason: str) -> dict:
     title = f"이번 주 스타트업캠퍼스 구내식당 식단표"
     post_date = result.post.published_on.isoformat() if result.post.published_on else "등록일 확인 불가"
     extension = file_extension(result.attachment.name)
+    extra_line = "\n원본 식단표가 변경되어 다시 올립니다." if reason == "changed" else ""
 
     blocks = [
         {
@@ -325,6 +347,7 @@ def build_success_payload(result: MenuResult) -> dict:
                     f"*{escape_slack(title)}*\n"
                     f"{escape_slack(result.attachment.name)}\n"
                     f"게시일: {escape_slack(post_date)}"
+                    f"{extra_line}"
                 ),
             },
         },
@@ -398,6 +421,73 @@ def post_to_slack(webhook_url: str, payload: dict) -> None:
     response.raise_for_status()
 
 
+def load_state(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def save_state(path: Path, state: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(state, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def success_state(result: MenuResult, config: Config) -> dict:
+    return {
+        "status": "success",
+        "week_start": week_bounds(config.today)[0].isoformat(),
+        "sent_on": config.today.isoformat(),
+        "post": {
+            "title": result.post.title,
+            "url": result.post.url,
+            "published_on": result.post.published_on.isoformat() if result.post.published_on else None,
+        },
+        "attachment": {
+            "name": result.attachment.name,
+            "url": result.attachment.url,
+            "sha256": result.attachment_sha256,
+            "size": result.attachment_size,
+        },
+    }
+
+
+def failure_state(error: MenuError, config: Config) -> dict:
+    return {
+        "status": "failure",
+        "checked_on": config.today.isoformat(),
+        "error_key": failure_key(error),
+        "message": error.message,
+        "board_url": error.board_url,
+        "post_url": error.post_url,
+    }
+
+
+def success_post_reason(previous: dict, current: dict, force_post: bool) -> str | None:
+    if force_post:
+        return "forced"
+    if previous.get("status") != "success":
+        return "first"
+    if previous.get("week_start") != current.get("week_start"):
+        return "new_week"
+    if previous.get("attachment", {}).get("sha256") != current.get("attachment", {}).get("sha256"):
+        return "changed"
+    return None
+
+
+def should_notify_failure(previous: dict, error: MenuError, config: Config) -> bool:
+    if not config.notify_failures:
+        return False
+    return not (
+        previous.get("status") == "failure"
+        and previous.get("checked_on") == config.today.isoformat()
+        and previous.get("error_key") == failure_key(error)
+    )
+
+
+def failure_key(error: MenuError) -> str:
+    return f"{error.message}|{error.board_url}|{error.post_url or ''}"
+
+
 def clean_space(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
@@ -434,7 +524,11 @@ def serialize_attachments(candidates: Iterable[AttachmentCandidate]) -> list[dic
 def serialize_result(result: MenuResult) -> dict:
     return {
         "post": serialize_posts([result.post])[0],
-        "attachment": serialize_attachments([result.attachment])[0],
+        "attachment": {
+            **serialize_attachments([result.attachment])[0],
+            "sha256": result.attachment_sha256,
+            "size": result.attachment_size,
+        },
         "board_url": result.board_url,
     }
 
@@ -442,6 +536,7 @@ def serialize_result(result: MenuResult) -> dict:
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Post Startup Campus cafeteria menu to Slack.")
     parser.add_argument("--dry-run", action="store_true", help="Print the Slack payload instead of posting it.")
+    parser.add_argument("--force-post", action="store_true", help="Post even when the current attachment matches state.")
     parser.add_argument("--date", help="Override today's date in YYYY-MM-DD for testing.")
     return parser.parse_args(argv)
 
@@ -461,6 +556,9 @@ def load_config(argv: list[str]) -> Config:
         post_min_semantic_score=int(os.getenv("POST_MIN_SEMANTIC_SCORE", "50")),
         post_min_total_score=int(os.getenv("POST_MIN_TOTAL_SCORE", "120")),
         attachment_min_score=int(os.getenv("ATTACHMENT_MIN_SCORE", "80")),
+        state_path=Path(os.getenv("MENU_STATE_PATH", DEFAULT_STATE_PATH)),
+        force_post=args.force_post or truthy(os.getenv("FORCE_POST")),
+        notify_failures=not truthy(os.getenv("DISABLE_FAILURE_NOTIFICATIONS")),
         dry_run=args.dry_run,
     )
 
@@ -476,21 +574,43 @@ def emit(config: Config, payload: dict) -> None:
     post_to_slack(config.slack_webhook_url, payload)
 
 
+def truthy(value: str | None) -> bool:
+    return value is not None and value.casefold() in {"1", "true", "yes", "y", "on"}
+
+
 def main(argv: list[str]) -> int:
     config = load_config(argv)
+    previous_state = load_state(config.state_path)
 
     try:
         result = discover_menu(config)
-        payload = build_success_payload(result)
+        current_state = success_state(result, config)
+        post_reason = success_post_reason(previous_state, current_state, config.force_post)
+
+        if post_reason is None:
+            if config.dry_run:
+                print(json.dumps({"status": "unchanged", "state": current_state}, ensure_ascii=False, indent=2))
+            return 0
+
+        payload = build_success_payload(result, post_reason)
         if config.dry_run:
             payload["_debug"] = serialize_result(result)
         emit(config, payload)
+        if not config.dry_run:
+            save_state(config.state_path, current_state)
         return 0
     except MenuError as error:
+        if not should_notify_failure(previous_state, error, config):
+            if config.dry_run:
+                print(json.dumps({"status": "repeated_failure", "message": error.message}, ensure_ascii=False, indent=2))
+            return 0
+
         payload = build_failure_payload(error)
         if config.dry_run and error.debug:
             payload["_debug"] = error.debug
         emit(config, payload)
+        if not config.dry_run:
+            save_state(config.state_path, failure_state(error, config))
         return 1
     except requests.RequestException as error:
         menu_error = MenuError(
@@ -498,10 +618,17 @@ def main(argv: list[str]) -> int:
             board_url=config.board_url,
             debug={"reason": "request_failed", "error": str(error)},
         )
+        if not should_notify_failure(previous_state, menu_error, config):
+            if config.dry_run:
+                print(json.dumps({"status": "repeated_failure", "message": menu_error.message}, ensure_ascii=False, indent=2))
+            return 0
+
         payload = build_failure_payload(menu_error)
         if config.dry_run:
             payload["_debug"] = menu_error.debug
         emit(config, payload)
+        if not config.dry_run:
+            save_state(config.state_path, failure_state(menu_error, config))
         return 1
 
 

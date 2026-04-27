@@ -1,12 +1,18 @@
-name: Weekly Startup Campus Menu
+name: Startup Campus Menu
 
 on:
   schedule:
-    - cron: "30 1 * * 1"
+    - cron: "30 1,4,7 * * 1-5"
   workflow_dispatch:
+    inputs:
+      force_post:
+        description: "Post even if the menu has not changed"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   post-menu:
@@ -31,3 +37,16 @@ jobs:
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           MENU_TIMEZONE: Asia/Seoul
+          FORCE_POST: ${{ inputs.force_post }}
+
+      - name: Save notification state
+        if: always()
+        run: |
+          if [ ! -f .menu-state/startupcampus-menu.json ]; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .menu-state/startupcampus-menu.json
+          git diff --cached --quiet || git commit -m "Update menu notification state"
+          git push
