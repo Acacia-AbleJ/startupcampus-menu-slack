@@ -6,6 +6,28 @@
 
 <img src="docs/startupcampus-menu-sample.png" alt="스타트업캠퍼스 구내식당 식단표 샘플" width="720">
 
+## Copy This Prompt
+
+아래 프롬프트를 Codex, Claude Code, OpenCode 같은 coding agent에게 붙여넣으면 됩니다.
+
+```text
+아래 GitHub 템플릿을 읽고, 현재 저장소에 스타트업캠퍼스 구내식당 Slack 알림을 설치해줘.
+
+https://github.com/Acacia-AbleJ/startupcampus-menu-slack
+
+목표:
+- 매주 월요일 10:30 KST에 GitHub Actions가 실행된다.
+- 판교테크노밸리 공지사항에서 이번 주 스타트업캠퍼스 식단표 첨부를 찾는다.
+- Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보낸다.
+
+작업:
+- 필요한 workflow, script, dependency 파일을 복사하거나 현재 저장소 구조에 맞게 병합한다.
+- Slack Webhook URL은 코드에 넣지 않는다.
+- GitHub Actions secret 이름은 SLACK_WEBHOOK_URL을 사용한다.
+- 가능하면 dry-run으로 동작을 확인한다.
+- 변경 내용을 요약하고, 내가 직접 해야 할 secret 등록 단계만 알려준다.
+```
+
 ## How It Works
 
 ```text
@@ -18,21 +40,19 @@
 
 첨부가 PNG/JPG/GIF이면 Slack에 이미지로 표시합니다. PDF이면 원본 파일 링크를 보냅니다.
 
-## Install
+## Manual Setup
 
-### 1. 저장소 만들기
+에이전트를 쓰지 않을 때만 아래 순서대로 설정합니다.
 
-이 저장소를 `Use this template`로 복사하거나, 에이전트에게 이 README의 **Agent Install** 섹션대로 설치를 맡깁니다.
-
-### 2. Slack Webhook 만들기
+### 1. Slack Webhook 만들기
 
 Slack에서 식단표를 받을 채널용 Incoming Webhook을 만듭니다.
 
 Webhook을 만들 때 선택한 채널이 식단표를 받을 채널입니다. 코드에는 채널명을 넣지 않습니다.
 
-### 3. GitHub Secret 등록
+### 2. GitHub Secret 등록
 
-복사한 GitHub 저장소에서 아래 위치로 이동합니다.
+GitHub 저장소에서 아래 위치로 이동합니다.
 
 ```text
 Settings → Secrets and variables → Actions → New repository secret
@@ -45,22 +65,11 @@ Name: SLACK_WEBHOOK_URL
 Value: https://hooks.slack.com/services/...
 ```
 
-### 4. 테스트 실행
+### 3. 테스트 실행
 
 GitHub 저장소의 `Actions` 탭에서 `Weekly Startup Campus Menu`를 선택한 뒤 `Run workflow`를 실행합니다.
 
 성공하면 Slack 채널에 식단표 메시지가 올라옵니다.
-
-## Agent Install
-
-Codex, Claude Code, OpenCode 같은 coding agent가 이 템플릿을 다른 저장소에 설치할 때는 아래 지침을 따르면 됩니다.
-
-1. `.github/workflows/weekly-menu.yml`을 복사합니다.
-2. `scripts/post_menu.py`를 복사합니다.
-3. `requirements.txt`를 복사하거나 기존 dependency 파일에 병합합니다.
-4. Slack Webhook URL을 코드에 하드코딩하지 않습니다.
-5. 사용자에게 GitHub Actions secret `SLACK_WEBHOOK_URL`을 추가하라고 안내합니다.
-6. 가능하면 `python scripts/post_menu.py --dry-run`으로 검증합니다.
 
 ## Local Test
 
