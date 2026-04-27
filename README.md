@@ -2,7 +2,7 @@
 
 판교테크노밸리 공지사항에서 **스타트업캠퍼스 구내식당 주간 식단표**를 찾아 Slack 채널에 자동으로 올리는 GitHub Actions 템플릿입니다.
 
-서버를 운영하지 않습니다. OCR이나 SLM도 쓰지 않습니다. 매주 한 번 GitHub Actions가 실행되고, Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보냅니다.
+매주 한 번 GitHub Actions가 실행되고, Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보냅니다.
 
 <img src="docs/startupcampus-menu-sample.png" alt="스타트업캠퍼스 구내식당 식단표 샘플" width="720">
 
@@ -93,23 +93,7 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..." python scripts/post_men
 | `MENU_BOARD_URL` | 판교테크노밸리 공지사항 | 식단표 공지사항 목록 URL |
 | `MENU_TIMEZONE` | `Asia/Seoul` | 이번 주 계산에 사용할 시간대 |
 | `POST_LOOKBACK_DAYS` | `0` | 이번 주 월요일보다 며칠 전 게시글까지 허용할지 |
-| `POST_MIN_SEMANTIC_SCORE` | `50` | 게시글 제목 의미 점수 최소값 |
-| `POST_MIN_TOTAL_SCORE` | `120` | 게시글 최종 점수 최소값 |
-| `ATTACHMENT_MIN_SCORE` | `80` | 스타트업캠퍼스 첨부 점수 최소값 |
 | `BOT_USER_AGENT` | built in | 사이트 요청에 사용할 User-Agent |
-
-## Selection Rules
-
-게시글과 첨부는 SLM 없이 점수 규칙으로 선택합니다. 규칙은 `scripts/post_menu.py`의 `POST_TERMS`, `ATTACHMENT_TERMS`에 선언돼 있습니다.
-
-첨부파일 예시:
-
-```text
-스타트업캠퍼스, 구내식당, 식단표 → 가점
-글로벌, 알앤디, 경기창조, 창조경제 → 감점
-```
-
-점수가 낮거나 애매하면 이미지를 억지로 보내지 않고, Slack에 공지사항 목록 또는 게시글 링크를 보냅니다.
 
 ## Schedule
 
@@ -135,4 +119,3 @@ on:
 - Slack Webhook URL은 GitHub Secret에만 저장합니다.
 - Public 저장소에 Webhook URL을 커밋하지 않습니다.
 - Actions 로그에 Webhook URL을 출력하지 않습니다.
-- 실패 시 과거 식단표 이미지를 fallback으로 보여주지 않습니다.
