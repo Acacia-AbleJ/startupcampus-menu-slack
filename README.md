@@ -106,16 +106,7 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..." python scripts/post_men
 
 ## Schedule
 
-기본 workflow는 월요일 10:30 KST에 실행됩니다.
-
-```yaml
-on:
-  schedule:
-    - cron: "30 10 * * 1"
-      timezone: "Asia/Seoul"
-```
-
-사용 중인 GitHub 환경에서 `timezone`을 지원하지 않으면 UTC 기준으로 아래처럼 바꾸면 됩니다.
+기본 workflow는 월요일 10:30 KST에 실행됩니다. GitHub Actions cron은 UTC 기준이므로 `30 1 * * 1`을 사용합니다.
 
 ```yaml
 on:
