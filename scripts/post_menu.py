@@ -42,6 +42,9 @@ class Config:
     user_agent: str
     today: date
     timezone: str
+    event_name: str
+    post_start_hour: int
+    post_end_hour: int
     post_lookback_days: int
     post_min_semantic_score: int
     post_min_total_score: int
@@ -552,6 +555,9 @@ def load_config(argv: list[str]) -> Config:
         user_agent=os.getenv("BOT_USER_AGENT", DEFAULT_USER_AGENT),
         today=today,
         timezone=timezone,
+        event_name=os.getenv("GITHUB_EVENT_NAME", ""),
+        post_start_hour=int(os.getenv("POST_START_HOUR", "9")),
+        post_end_hour=int(os.getenv("POST_END_HOUR", "18")),
         post_lookback_days=int(os.getenv("POST_LOOKBACK_DAYS", "0")),
         post_min_semantic_score=int(os.getenv("POST_MIN_SEMANTIC_SCORE", "50")),
         post_min_total_score=int(os.getenv("POST_MIN_TOTAL_SCORE", "120")),
@@ -578,8 +584,31 @@ def truthy(value: str | None) -> bool:
     return value is not None and value.casefold() in {"1", "true", "yes", "y", "on"}
 
 
+def should_skip_delivery_window(config: Config) -> bool:
+    if config.dry_run or config.force_post or config.event_name != "schedule":
+        return False
+
+    now = datetime.now(ZoneInfo(config.timezone))
+    return not (config.post_start_hour <= now.hour < config.post_end_hour)
+
+
 def main(argv: list[str]) -> int:
     config = load_config(argv)
+
+    if should_skip_delivery_window(config):
+        print(
+            json.dumps(
+                {
+                    "status": "skipped_outside_delivery_window",
+                    "timezone": config.timezone,
+                    "allowed_hours": [config.post_start_hour, config.post_end_hour],
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+
     previous_state = load_state(config.state_path)
 
     try:

@@ -102,6 +102,8 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..." python scripts/post_men
 | `SLACK_WEBHOOK_URL` | required | Slack Incoming Webhook URL. GitHub Secret으로 저장합니다. |
 | `MENU_BOARD_URL` | 판교테크노밸리 공지사항 | 식단표 공지사항 목록 URL |
 | `MENU_TIMEZONE` | `Asia/Seoul` | 이번 주 계산에 사용할 시간대 |
+| `POST_START_HOUR` | `9` | scheduled run 전송 허용 시작 시각 |
+| `POST_END_HOUR` | `18` | scheduled run 전송 허용 종료 시각 |
 | `POST_LOOKBACK_DAYS` | `0` | 이번 주 월요일보다 며칠 전 게시글까지 허용할지 |
 | `MENU_STATE_PATH` | `.menu-state/startupcampus-menu.json` | 마지막 전송 기록 파일 |
 | `FORCE_POST` | `false` | 같은 첨부여도 강제로 전송할지 |
@@ -116,6 +118,8 @@ on:
   schedule:
     - cron: "30 1,4,7 * * 1-5"
 ```
+
+GitHub Actions scheduled run은 지연될 수 있습니다. scheduled run이 KST 18시 이후에 시작되면 Slack 전송 없이 종료합니다.
 
 ## Security
 
