@@ -1,0 +1,34 @@
+name: Weekly Startup Campus Menu
+
+on:
+  schedule:
+    - cron: "30 10 * * 1"
+      timezone: "Asia/Seoul"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  post-menu:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Post menu to Slack
+        run: python scripts/post_menu.py
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          MENU_TIMEZONE: Asia/Seoul
