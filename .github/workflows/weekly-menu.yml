@@ -2,7 +2,7 @@ name: Startup Campus Menu
 
 on:
   schedule:
-    - cron: "30 1,4,7 * * 1-5"
+    - cron: "30 1 * * 1-5"
   workflow_dispatch:
     inputs:
       force_post:

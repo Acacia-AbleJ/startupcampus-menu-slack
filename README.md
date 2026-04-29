@@ -2,7 +2,7 @@
 
 판교테크노밸리 공지사항에서 **스타트업캠퍼스 구내식당 주간 식단표**를 찾아 Slack 채널에 자동으로 올리는 GitHub Actions 템플릿입니다.
 
-평일 10:30, 13:30, 16:30 KST에 식단표를 확인하고, 새 주차이거나 원본 첨부가 바뀌었을 때 Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보냅니다.
+평일 10:30 KST에 식단표를 확인하고, 새 주차이거나 원본 첨부가 바뀌었을 때 Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보냅니다.
 
 <img src="docs/startupcampus-menu-sample.png" alt="스타트업캠퍼스 구내식당 식단표 샘플" width="720">
 
@@ -16,7 +16,7 @@
 https://github.com/Acacia-AbleJ/startupcampus-menu-slack
 
 목표:
-- 평일 10:30, 13:30, 16:30 KST에 GitHub Actions가 실행된다.
+- 평일 10:30 KST에 GitHub Actions가 실행된다.
 - 판교테크노밸리 공지사항에서 이번 주 스타트업캠퍼스 식단표 첨부를 찾는다.
 - 새 주차이거나 원본 첨부가 바뀌었을 때 Slack Incoming Webhook으로 식단표 이미지 또는 파일 링크를 보낸다.
 
@@ -31,7 +31,7 @@ https://github.com/Acacia-AbleJ/startupcampus-menu-slack
 ## How It Works
 
 ```text
-평일 10:30, 13:30, 16:30 KST
+평일 10:30 KST
 → 판교테크노밸리 공지사항 목록 조회
 → 이번 주 구내식당 주간메뉴표 게시글 선택
 → 스타트업캠퍼스 첨부 선택
@@ -111,12 +111,12 @@ SLACK_WEBHOOK_URL="https://hooks.slack.com/services/..." python scripts/post_men
 
 ## Schedule
 
-기본 workflow는 평일 10:30, 13:30, 16:30 KST에 실행됩니다. GitHub Actions cron은 UTC 기준이므로 `30 1,4,7 * * 1-5`를 사용합니다.
+기본 workflow는 평일 10:30 KST에 실행됩니다. GitHub Actions cron은 UTC 기준이므로 `30 1 * * 1-5`를 사용합니다.
 
 ```yaml
 on:
   schedule:
-    - cron: "30 1,4,7 * * 1-5"
+    - cron: "30 1 * * 1-5"
 ```
 
 GitHub Actions scheduled run은 지연될 수 있습니다. scheduled run이 KST 18시 이후에 시작되면 Slack 전송 없이 종료합니다.
