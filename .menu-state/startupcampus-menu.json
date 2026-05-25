@@ -1,16 +1,8 @@
 {
-  "status": "success",
-  "week_start": "2026-05-18",
-  "sent_on": "2026-05-18",
-  "post": {
-    "title": "판교테크노밸리 공공건물 구내식당 주간메뉴표(5월 4주차)",
-    "url": "https://www.pangyotechnovalley.org:443/base/board/read?boardManagementNo=18&boardNo=3770&searchCategory=&page=1&searchType=&searchWord=&menuLevel=2&menuNo=55",
-    "published_on": "2026-05-18"
-  },
-  "attachment": {
-    "name": "스타트업캠퍼스 구내식당 5월 넷째주 식단표.PNG",
-    "url": "https://www.pangyotechnovalley.org:443/download/BASIC_ATTACH?storageNo=5444",
-    "sha256": "d2bcde811563cd459629974a4eeea3c67d3693cb375a114a01d32ea6bd2b3437",
-    "size": 63651
-  }
+  "status": "failure",
+  "checked_on": "2026-05-25",
+  "error_key": "이번 주 식단표 게시글을 자동으로 확정하지 못했습니다.|https://www.pangyotechnovalley.org/base/board/list?boardManagementNo=18&menuLevel=2&menuNo=55&page=1&searchCategory=&searchType=&searchWord=|",
+  "message": "이번 주 식단표 게시글을 자동으로 확정하지 못했습니다.",
+  "board_url": "https://www.pangyotechnovalley.org/base/board/list?boardManagementNo=18&menuLevel=2&menuNo=55&page=1&searchCategory=&searchType=&searchWord=",
+  "post_url": null
 }
