@@ -1,8 +1,16 @@
 {
-  "status": "failure",
-  "checked_on": "2026-06-01",
-  "error_key": "이번 주 식단표 게시글을 자동으로 확정하지 못했습니다.|https://www.pangyotechnovalley.org/base/board/list?boardManagementNo=18&menuLevel=2&menuNo=55&page=1&searchCategory=&searchType=&searchWord=|",
-  "message": "이번 주 식단표 게시글을 자동으로 확정하지 못했습니다.",
-  "board_url": "https://www.pangyotechnovalley.org/base/board/list?boardManagementNo=18&menuLevel=2&menuNo=55&page=1&searchCategory=&searchType=&searchWord=",
-  "post_url": null
+  "status": "success",
+  "week_start": "2026-06-01",
+  "sent_on": "2026-06-02",
+  "post": {
+    "title": "판교테크노밸리 공공건물 구내식당 주간메뉴표(6월 1주차)",
+    "url": "https://www.pangyotechnovalley.org:443/base/board/read?boardManagementNo=18&boardNo=3802&searchCategory=&page=1&searchType=&searchWord=&menuLevel=2&menuNo=55",
+    "published_on": "2026-06-01"
+  },
+  "attachment": {
+    "name": "스타트업캠퍼스 구내식당 6월 첫째주 식단표.PNG",
+    "url": "https://www.pangyotechnovalley.org:443/download/BASIC_ATTACH?storageNo=5459",
+    "sha256": "ad22be2663981825be89ce29fa61ac363d02c1b9df5a3ab7b6d79acc16700114",
+    "size": 66797
+  }
 }
