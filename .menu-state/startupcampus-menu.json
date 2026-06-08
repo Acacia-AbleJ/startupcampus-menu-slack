@@ -1,16 +1,16 @@
 {
   "status": "success",
-  "week_start": "2026-06-01",
-  "sent_on": "2026-06-02",
+  "week_start": "2026-06-08",
+  "sent_on": "2026-06-08",
   "post": {
-    "title": "판교테크노밸리 공공건물 구내식당 주간메뉴표(6월 1주차)",
-    "url": "https://www.pangyotechnovalley.org:443/base/board/read?boardManagementNo=18&boardNo=3802&searchCategory=&page=1&searchType=&searchWord=&menuLevel=2&menuNo=55",
-    "published_on": "2026-06-01"
+    "title": "판교테크노밸리 공공건물 구내식당 주간메뉴표(6월 2주차)",
+    "url": "https://www.pangyotechnovalley.org:443/base/board/read?boardManagementNo=18&boardNo=3811&searchCategory=&page=1&searchType=&searchWord=&menuLevel=2&menuNo=55",
+    "published_on": "2026-06-08"
   },
   "attachment": {
-    "name": "스타트업캠퍼스 구내식당 6월 첫째주 식단표.PNG",
-    "url": "https://www.pangyotechnovalley.org:443/download/BASIC_ATTACH?storageNo=5459",
-    "sha256": "ad22be2663981825be89ce29fa61ac363d02c1b9df5a3ab7b6d79acc16700114",
-    "size": 66797
+    "name": "스타트업캠퍼스 구내식당 6월 둘째주 식단표.PNG",
+    "url": "https://www.pangyotechnovalley.org:443/download/BASIC_ATTACH?storageNo=5470",
+    "sha256": "70b11a102678deaa508d415d3700ce825668f9a12f56369396053c460d2342cd",
+    "size": 64242
   }
 }
