@@ -1,8 +1,8 @@
 {
   "status": "failure",
-  "checked_on": "2026-06-26",
-  "error_key": "이번 주 식단표 게시글을 자동으로 확정하지 못했습니다.|https://www.pangyotechnovalley.org/base/board/list?boardManagementNo=18&menuLevel=2&menuNo=55&page=1&searchCategory=&searchType=&searchWord=|",
-  "message": "이번 주 식단표 게시글을 자동으로 확정하지 못했습니다.",
+  "checked_on": "2026-06-29",
+  "error_key": "판교테크노밸리 공지사항에 접근하지 못했습니다.|https://www.pangyotechnovalley.org/base/board/list?boardManagementNo=18&menuLevel=2&menuNo=55&page=1&searchCategory=&searchType=&searchWord=|",
+  "message": "판교테크노밸리 공지사항에 접근하지 못했습니다.",
   "board_url": "https://www.pangyotechnovalley.org/base/board/list?boardManagementNo=18&menuLevel=2&menuNo=55&page=1&searchCategory=&searchType=&searchWord=",
   "post_url": null
 }
