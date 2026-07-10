@@ -1,8 +1,11 @@
 from __future__ import annotations
 
+import hashlib
 import unittest
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from scripts.post_menu import (
     AttachmentCandidate,
@@ -14,6 +17,7 @@ from scripts.post_menu import (
     choose_post,
     fetch_bytes,
     normalize,
+    save_menu_image,
     score_attachment_candidate,
     success_post_reason,
 )
@@ -109,6 +113,28 @@ class PostMenuTest(unittest.TestCase):
         )
         self.assertIn("https://example.com/post", action_urls)
         self.assertNotIn("https://example.com/download", action_urls)
+
+    def test_save_menu_image_reuses_same_week_same_hash(self) -> None:
+        content = b"menu"
+        digest = hashlib.sha256(content).hexdigest()[:12]
+
+        with TemporaryDirectory() as directory:
+            config = replace(
+                make_config(),
+                image_dir=Path(directory),
+                image_base_url="https://raw.example.com/menus",
+            )
+            attachment = AttachmentCandidate("스타트업캠퍼스 구내식당 식단표.PNG", "https://example.com/download")
+
+            url = save_menu_image(attachment, content, config)
+            next_day_url = save_menu_image(attachment, content, replace(config, today=date(2026, 4, 28)))
+
+            self.assertEqual(
+                url,
+                f"https://raw.example.com/menus/2026-04-27-2026-04-27-{digest}-startupcampus-menu.png",
+            )
+            self.assertEqual(next_day_url, url)
+            self.assertEqual(len(list(Path(directory).glob("*.png"))), 1)
 
 
 def make_config() -> Config:

@@ -332,7 +332,15 @@ def save_menu_image(attachment: AttachmentCandidate, content: bytes, config: Con
     if extension not in IMAGE_EXTENSIONS or not config.image_dir or not config.image_base_url:
         return None
 
-    filename = f"{week_bounds(config.today)[0].isoformat()}-startupcampus-menu{extension}"
+    week_start = week_bounds(config.today)[0].isoformat()
+    digest = hashlib.sha256(content).hexdigest()[:12]
+    pattern = f"{week_start}-*-{digest}-startupcampus-menu{extension}"
+    existing_paths = sorted(config.image_dir.glob(pattern))
+    if existing_paths:
+        filename = existing_paths[0].name
+        return f"{config.image_base_url.rstrip('/')}/{quote(filename)}"
+
+    filename = f"{week_start}-{config.today.isoformat()}-{digest}-startupcampus-menu{extension}"
     image_path = config.image_dir / filename
     image_path.parent.mkdir(parents=True, exist_ok=True)
     image_path.write_bytes(content)
