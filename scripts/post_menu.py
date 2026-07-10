@@ -52,6 +52,7 @@ class Config:
     state_path: Path
     image_dir: Path | None
     image_base_url: str | None
+    result_path: Path | None
     force_post: bool
     notify_failures: bool
     dry_run: bool
@@ -492,6 +493,7 @@ def success_state(result: MenuResult, config: Config) -> dict:
             "sha256": result.attachment_sha256,
             "size": result.attachment_size,
         },
+        "image_url": result.image_url,
     }
 
 
@@ -578,6 +580,40 @@ def serialize_result(result: MenuResult) -> dict:
     }
 
 
+def deserialize_result(data: dict) -> MenuResult:
+    post_data = data["post"]
+    attachment_data = data["attachment"]
+    published_on = date.fromisoformat(post_data["published_on"]) if post_data.get("published_on") else None
+
+    return MenuResult(
+        post=PostCandidate(
+            title=post_data["title"],
+            url=post_data["url"],
+            published_on=published_on,
+            score=int(post_data.get("score", 0)),
+            semantic_score=int(post_data.get("semantic_score", 0)),
+        ),
+        attachment=AttachmentCandidate(
+            name=attachment_data["name"],
+            url=attachment_data["url"],
+            score=int(attachment_data.get("score", 0)),
+        ),
+        board_url=data["board_url"],
+        attachment_sha256=attachment_data["sha256"],
+        attachment_size=int(attachment_data["size"]),
+        image_url=data.get("image_url"),
+    )
+
+
+def save_result(path: Path, result: MenuResult) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(serialize_result(result), ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def load_result(path: Path) -> MenuResult:
+    return deserialize_result(json.loads(path.read_text(encoding="utf-8")))
+
+
 def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Post Startup Campus cafeteria menu to Slack.")
     parser.add_argument("--dry-run", action="store_true", help="Print the Slack payload instead of posting it.")
@@ -608,6 +644,7 @@ def load_config(argv: list[str]) -> Config:
         state_path=Path(os.getenv("MENU_STATE_PATH", DEFAULT_STATE_PATH)),
         image_dir=Path(os.getenv("MENU_IMAGE_DIR")) if os.getenv("MENU_IMAGE_DIR") else None,
         image_base_url=os.getenv("MENU_IMAGE_BASE_URL"),
+        result_path=Path(os.getenv("MENU_RESULT_PATH")) if os.getenv("MENU_RESULT_PATH") else None,
         force_post=args.force_post or truthy(os.getenv("FORCE_POST")),
         notify_failures=not truthy(os.getenv("DISABLE_FAILURE_NOTIFICATIONS")),
         dry_run=args.dry_run,
@@ -658,8 +695,10 @@ def main(argv: list[str]) -> int:
     previous_state = load_state(config.state_path)
 
     try:
-        result = discover_menu(config)
+        result = discover_menu(config) if config.mirror_only or not config.result_path else load_result(config.result_path)
         if config.mirror_only:
+            if config.result_path:
+                save_result(config.result_path, result)
             print(json.dumps({"status": "mirrored", "result": serialize_result(result)}, ensure_ascii=False, indent=2))
             return 0
 

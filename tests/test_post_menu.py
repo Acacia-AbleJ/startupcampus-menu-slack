@@ -16,8 +16,10 @@ from scripts.post_menu import (
     choose_attachment,
     choose_post,
     fetch_bytes,
+    load_result,
     normalize,
     save_menu_image,
+    save_result,
     score_attachment_candidate,
     success_post_reason,
 )
@@ -136,6 +138,23 @@ class PostMenuTest(unittest.TestCase):
             self.assertEqual(next_day_url, url)
             self.assertEqual(len(list(Path(directory).glob("*.png"))), 1)
 
+    def test_save_result_round_trips_image_url(self) -> None:
+        result = MenuResult(
+            post=PostCandidate("구내식당 주간메뉴표", "https://example.com/post", date(2026, 4, 27), score=360, semantic_score=260),
+            attachment=AttachmentCandidate("스타트업캠퍼스 구내식당 식단표.PNG", "https://example.com/download", score=298),
+            board_url="https://example.com/list",
+            attachment_sha256="abc",
+            attachment_size=123,
+            image_url="https://raw.example.com/menus/menu.png",
+        )
+
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "current-menu-result.json"
+            save_result(path, result)
+            loaded = load_result(path)
+
+            self.assertEqual(loaded, result)
+
 
 def make_config() -> Config:
     return Config(
@@ -154,6 +173,7 @@ def make_config() -> Config:
         state_path=Path(".menu-state/test.json"),
         image_dir=None,
         image_base_url=None,
+        result_path=None,
         force_post=False,
         notify_failures=True,
         dry_run=True,

@@ -38,6 +38,7 @@ jobs:
           MENU_TIMEZONE: Asia/Seoul
           MENU_IMAGE_DIR: docs/menus
           MENU_IMAGE_BASE_URL: "https://raw.githubusercontent.com/${{ github.repository }}/master/docs/menus"
+          MENU_RESULT_PATH: .menu-state/current-menu-result.json
 
       - name: Save menu image mirror
         run: |
@@ -49,6 +50,20 @@ jobs:
           git diff --cached --quiet || git commit -m "Update menu image mirror"
           git push
 
+      - name: Verify mirrored image URL
+        run: |
+          image_url=$(python - <<'PY'
+          import json
+          from pathlib import Path
+
+          data = json.loads(Path(".menu-state/current-menu-result.json").read_text(encoding="utf-8"))
+          print(data.get("image_url") or "")
+          PY
+          )
+          if [ -n "$image_url" ]; then
+            curl --fail --location --retry 5 --retry-delay 2 --output /dev/null "$image_url"
+          fi
+
       - name: Post menu to Slack
         run: python scripts/post_menu.py
         env:
@@ -56,6 +71,7 @@ jobs:
           MENU_TIMEZONE: Asia/Seoul
           MENU_IMAGE_DIR: docs/menus
           MENU_IMAGE_BASE_URL: "https://raw.githubusercontent.com/${{ github.repository }}/master/docs/menus"
+          MENU_RESULT_PATH: .menu-state/current-menu-result.json
           FORCE_POST: ${{ inputs.force_post }}
 
       - name: Save notification state
