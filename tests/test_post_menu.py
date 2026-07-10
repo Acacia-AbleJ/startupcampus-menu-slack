@@ -7,7 +7,9 @@ from pathlib import Path
 from scripts.post_menu import (
     AttachmentCandidate,
     Config,
+    MenuResult,
     PostCandidate,
+    build_success_payload,
     choose_attachment,
     choose_post,
     fetch_bytes,
@@ -86,6 +88,28 @@ class PostMenuTest(unittest.TestCase):
         self.assertEqual(content, b"menu")
         self.assertEqual(session.last_kwargs["headers"]["Referer"], "https://example.com/post")
 
+    def test_success_payload_uses_mirrored_image_url(self) -> None:
+        result = MenuResult(
+            post=PostCandidate("구내식당 주간메뉴표", "https://example.com/post", date(2026, 4, 27)),
+            attachment=AttachmentCandidate("스타트업캠퍼스 구내식당 식단표.PNG", "https://example.com/download"),
+            board_url="https://example.com/list",
+            attachment_sha256="abc",
+            attachment_size=123,
+            image_url="https://raw.githubusercontent.com/acme/repo/master/docs/menus/2026-04-27-startupcampus-menu.png",
+        )
+
+        payload = build_success_payload(result, "first")
+        block_types = [block["type"] for block in payload["blocks"]]
+        action_urls = [element["url"] for element in payload["blocks"][1]["elements"]]
+
+        self.assertIn("image", block_types)
+        self.assertEqual(
+            payload["blocks"][2]["image_url"],
+            "https://raw.githubusercontent.com/acme/repo/master/docs/menus/2026-04-27-startupcampus-menu.png",
+        )
+        self.assertIn("https://example.com/post", action_urls)
+        self.assertNotIn("https://example.com/download", action_urls)
+
 
 def make_config() -> Config:
     return Config(
@@ -102,9 +126,12 @@ def make_config() -> Config:
         post_min_total_score=120,
         attachment_min_score=80,
         state_path=Path(".menu-state/test.json"),
+        image_dir=None,
+        image_base_url=None,
         force_post=False,
         notify_failures=True,
         dry_run=True,
+        mirror_only=False,
     )
 
 

@@ -32,11 +32,30 @@ jobs:
       - name: Install dependencies
         run: pip install -r requirements.txt
 
+      - name: Mirror menu image
+        run: python scripts/post_menu.py --mirror-only
+        env:
+          MENU_TIMEZONE: Asia/Seoul
+          MENU_IMAGE_DIR: docs/menus
+          MENU_IMAGE_BASE_URL: "https://raw.githubusercontent.com/${{ github.repository }}/master/docs/menus"
+
+      - name: Save menu image mirror
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [ -d docs/menus ]; then
+            git add docs/menus
+          fi
+          git diff --cached --quiet || git commit -m "Update menu image mirror"
+          git push
+
       - name: Post menu to Slack
         run: python scripts/post_menu.py
         env:
           SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
           MENU_TIMEZONE: Asia/Seoul
+          MENU_IMAGE_DIR: docs/menus
+          MENU_IMAGE_BASE_URL: "https://raw.githubusercontent.com/${{ github.repository }}/master/docs/menus"
           FORCE_POST: ${{ inputs.force_post }}
 
       - name: Save notification state

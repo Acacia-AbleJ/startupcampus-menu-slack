@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Iterable
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 from zoneinfo import ZoneInfo
 
 import requests
@@ -50,9 +50,12 @@ class Config:
     post_min_total_score: int
     attachment_min_score: int
     state_path: Path
+    image_dir: Path | None
+    image_base_url: str | None
     force_post: bool
     notify_failures: bool
     dry_run: bool
+    mirror_only: bool
 
 
 @dataclass(frozen=True)
@@ -84,6 +87,7 @@ class MenuResult:
     board_url: str
     attachment_sha256: str
     attachment_size: int
+    image_url: str | None = None
 
 
 @dataclass(frozen=True)
@@ -311,6 +315,7 @@ def discover_menu(config: Config) -> MenuResult:
     detail_html = fetch_text(session, post.url)
     attachment = choose_attachment(collect_attachment_candidates(detail_html, post.url), config, post)
     attachment_bytes = fetch_bytes(session, attachment.url, referer=post.url)
+    image_url = save_menu_image(attachment, attachment_bytes, config)
 
     return MenuResult(
         post=post,
@@ -318,7 +323,20 @@ def discover_menu(config: Config) -> MenuResult:
         board_url=config.board_url,
         attachment_sha256=hashlib.sha256(attachment_bytes).hexdigest(),
         attachment_size=len(attachment_bytes),
+        image_url=image_url,
     )
+
+
+def save_menu_image(attachment: AttachmentCandidate, content: bytes, config: Config) -> str | None:
+    extension = file_extension(attachment.name)
+    if extension not in IMAGE_EXTENSIONS or not config.image_dir or not config.image_base_url:
+        return None
+
+    filename = f"{week_bounds(config.today)[0].isoformat()}-startupcampus-menu{extension}"
+    image_path = config.image_dir / filename
+    image_path.parent.mkdir(parents=True, exist_ok=True)
+    image_path.write_bytes(content)
+    return f"{config.image_base_url.rstrip('/')}/{quote(filename)}"
 
 
 def fetch_text(session: requests.Session, url: str) -> str:
@@ -372,28 +390,27 @@ def build_success_payload(result: MenuResult, reason: str) -> dict:
         },
         actions_block(
             (
-                ("원본 파일 보기", result.attachment.url),
-                ("게시글 보기", result.post.url),
+                ("게시글에서 원본 보기", result.post.url),
                 ("공지사항 목록", result.board_url),
             )
         ),
     ]
 
-    if extension in IMAGE_EXTENSIONS:
+    if extension in IMAGE_EXTENSIONS and result.image_url:
         blocks.append(
             {
                 "type": "image",
-                "image_url": result.attachment.url,
+                "image_url": result.image_url,
                 "alt_text": "스타트업캠퍼스 구내식당 식단표",
             }
         )
-    else:
+    elif extension not in IMAGE_EXTENSIONS:
         blocks.append(
             {
                 "type": "section",
                 "text": {
                     "type": "mrkdwn",
-                    "text": "이미지 미리보기를 지원하지 않는 파일입니다. 원본 파일을 열어 확인해주세요.",
+                    "text": "이미지 미리보기를 지원하지 않는 파일입니다. 게시글에서 원본 파일을 확인해주세요.",
                 },
             }
         )
@@ -548,6 +565,7 @@ def serialize_result(result: MenuResult) -> dict:
             "sha256": result.attachment_sha256,
             "size": result.attachment_size,
         },
+        "image_url": result.image_url,
         "board_url": result.board_url,
     }
 
@@ -556,6 +574,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Post Startup Campus cafeteria menu to Slack.")
     parser.add_argument("--dry-run", action="store_true", help="Print the Slack payload instead of posting it.")
     parser.add_argument("--force-post", action="store_true", help="Post even when the current attachment matches state.")
+    parser.add_argument("--mirror-only", action="store_true", help="Download and mirror the menu image without posting.")
     parser.add_argument("--date", help="Override today's date in YYYY-MM-DD for testing.")
     return parser.parse_args(argv)
 
@@ -579,9 +598,12 @@ def load_config(argv: list[str]) -> Config:
         post_min_total_score=int(os.getenv("POST_MIN_TOTAL_SCORE", "120")),
         attachment_min_score=int(os.getenv("ATTACHMENT_MIN_SCORE", "80")),
         state_path=Path(os.getenv("MENU_STATE_PATH", DEFAULT_STATE_PATH)),
+        image_dir=Path(os.getenv("MENU_IMAGE_DIR")) if os.getenv("MENU_IMAGE_DIR") else None,
+        image_base_url=os.getenv("MENU_IMAGE_BASE_URL"),
         force_post=args.force_post or truthy(os.getenv("FORCE_POST")),
         notify_failures=not truthy(os.getenv("DISABLE_FAILURE_NOTIFICATIONS")),
         dry_run=args.dry_run,
+        mirror_only=args.mirror_only,
     )
 
 
@@ -629,6 +651,10 @@ def main(argv: list[str]) -> int:
 
     try:
         result = discover_menu(config)
+        if config.mirror_only:
+            print(json.dumps({"status": "mirrored", "result": serialize_result(result)}, ensure_ascii=False, indent=2))
+            return 0
+
         current_state = success_state(result, config)
         post_reason = success_post_reason(previous_state, current_state, config.force_post)
 
@@ -645,6 +671,10 @@ def main(argv: list[str]) -> int:
             save_state(config.state_path, current_state)
         return 0
     except MenuError as error:
+        if config.mirror_only:
+            print(json.dumps({"status": "mirror_failed", "message": error.message, "debug": error.debug}, ensure_ascii=False, indent=2))
+            return 1
+
         if not should_notify_failure(previous_state, error, config):
             if config.dry_run:
                 print(json.dumps({"status": "repeated_failure", "message": error.message}, ensure_ascii=False, indent=2))
@@ -659,6 +689,9 @@ def main(argv: list[str]) -> int:
         return 1
     except requests.RequestException as error:
         print(f"Request failed: {error}", file=sys.stderr)
+        if config.mirror_only:
+            return 1
+
         menu_error = MenuError(
             message="판교테크노밸리 공지사항에 접근하지 못했습니다.",
             board_url=config.board_url,
