@@ -323,7 +323,7 @@ def discover_menu(config: Config) -> MenuResult:
 
 def fetch_text(session: requests.Session, url: str) -> str:
     response = session.get(url, timeout=20)
-    response.raise_for_status()
+    raise_for_status(response)
     if response.encoding is None:
         response.encoding = response.apparent_encoding
     return response.text
@@ -335,8 +335,20 @@ def fetch_bytes(session: requests.Session, url: str, referer: str | None = None)
         request_kwargs["headers"] = {"Referer": referer}
 
     response = session.get(url, **request_kwargs)
-    response.raise_for_status()
+    raise_for_status(response)
     return response.content
+
+
+def raise_for_status(response: requests.Response, label: str | None = None) -> None:
+    if response.ok:
+        return
+
+    body = clean_space(response.text)[:500]
+    target = label or response.url
+    raise requests.HTTPError(
+        f"{response.status_code} {response.reason} for {target}: {body}",
+        response=response,
+    )
 
 
 def build_success_payload(result: MenuResult, reason: str) -> dict:
@@ -425,7 +437,7 @@ def actions_block(links: tuple[tuple[str, str], ...]) -> dict:
 
 def post_to_slack(webhook_url: str, payload: dict) -> None:
     response = requests.post(webhook_url, json=payload, timeout=20)
-    response.raise_for_status()
+    raise_for_status(response, label="Slack webhook")
 
 
 def load_state(path: Path) -> dict:
@@ -646,6 +658,7 @@ def main(argv: list[str]) -> int:
             save_state(config.state_path, failure_state(error, config))
         return 1
     except requests.RequestException as error:
+        print(f"Request failed: {error}", file=sys.stderr)
         menu_error = MenuError(
             message="판교테크노밸리 공지사항에 접근하지 못했습니다.",
             board_url=config.board_url,

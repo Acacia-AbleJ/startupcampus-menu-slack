@@ -109,6 +109,7 @@ def make_config() -> Config:
 
 
 class FakeResponse:
+    ok = True
     content = b"menu"
 
     def raise_for_status(self) -> None:
