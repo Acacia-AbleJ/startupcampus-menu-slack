@@ -10,6 +10,7 @@ from scripts.post_menu import (
     PostCandidate,
     choose_attachment,
     choose_post,
+    fetch_bytes,
     normalize,
     score_attachment_candidate,
     success_post_reason,
@@ -77,6 +78,14 @@ class PostMenuTest(unittest.TestCase):
 
         self.assertEqual(success_post_reason(previous, current, force_post=False), "changed")
 
+    def test_fetch_bytes_sends_referer_for_attachment_download(self) -> None:
+        session = FakeSession()
+
+        content = fetch_bytes(session, "https://example.com/download", referer="https://example.com/post")
+
+        self.assertEqual(content, b"menu")
+        self.assertEqual(session.last_kwargs["headers"]["Referer"], "https://example.com/post")
+
 
 def make_config() -> Config:
     return Config(
@@ -97,6 +106,24 @@ def make_config() -> Config:
         notify_failures=True,
         dry_run=True,
     )
+
+
+class FakeResponse:
+    content = b"menu"
+
+    def raise_for_status(self) -> None:
+        return None
+
+
+class FakeSession:
+    def __init__(self) -> None:
+        self.last_url: str | None = None
+        self.last_kwargs: dict = {}
+
+    def get(self, url: str, **kwargs) -> FakeResponse:
+        self.last_url = url
+        self.last_kwargs = kwargs
+        return FakeResponse()
 
 
 if __name__ == "__main__":

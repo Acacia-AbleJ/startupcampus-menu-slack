@@ -310,7 +310,7 @@ def discover_menu(config: Config) -> MenuResult:
 
     detail_html = fetch_text(session, post.url)
     attachment = choose_attachment(collect_attachment_candidates(detail_html, post.url), config, post)
-    attachment_bytes = fetch_bytes(session, attachment.url)
+    attachment_bytes = fetch_bytes(session, attachment.url, referer=post.url)
 
     return MenuResult(
         post=post,
@@ -329,8 +329,12 @@ def fetch_text(session: requests.Session, url: str) -> str:
     return response.text
 
 
-def fetch_bytes(session: requests.Session, url: str) -> bytes:
-    response = session.get(url, timeout=20)
+def fetch_bytes(session: requests.Session, url: str, referer: str | None = None) -> bytes:
+    request_kwargs = {"timeout": 20}
+    if referer:
+        request_kwargs["headers"] = {"Referer": referer}
+
+    response = session.get(url, **request_kwargs)
     response.raise_for_status()
     return response.content
 
