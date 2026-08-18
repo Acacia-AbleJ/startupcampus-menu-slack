@@ -1,17 +1,17 @@
 {
   "status": "success",
-  "week_start": "2026-08-10",
-  "sent_on": "2026-08-13",
+  "week_start": "2026-08-17",
+  "sent_on": "2026-08-18",
   "post": {
     "title": "판교테크노밸리 공공건물 구내식당 주간메뉴표(8월 3주차)",
-    "url": "https://www.pangyotechnovalley.org/base/board/read?boardManagementNo=18&boardNo=4114&searchCategory=&page=1&searchType=&searchWord=&menuLevel=2&menuNo=55",
-    "published_on": "2026-08-12"
+    "url": "https://www.pangyotechnovalley.org/base/board/read?boardManagementNo=18&boardNo=4119&searchCategory=&page=1&searchType=&searchWord=&menuLevel=2&menuNo=55",
+    "published_on": "2026-08-18"
   },
   "attachment": {
-    "name": "스타트업캠퍼스 구내식당 8월 둘째주 식단표.PNG",
-    "url": "https://www.pangyotechnovalley.org/download/BASIC_ATTACH?storageNo=5806",
-    "sha256": "ca5c2d4462e501d8ad93007c249b05f78d2a733e1e5887d9eb77a851ae58be44",
-    "size": 65208
+    "name": "스타트업캠퍼스 구내식당 8월 셋째주 식단표.PNG",
+    "url": "https://www.pangyotechnovalley.org/download/BASIC_ATTACH?storageNo=5815",
+    "sha256": "8b36325d5788148f872e7676fd8509ebe3da312b6492e890e7443cdf745808a9",
+    "size": 66692
   },
-  "image_url": "https://raw.githubusercontent.com/Acacia-AbleJ/startupcampus-menu-slack/master/docs/menus/2026-08-10-2026-08-13-ca5c2d4462e5-startupcampus-menu.png"
+  "image_url": "https://raw.githubusercontent.com/Acacia-AbleJ/startupcampus-menu-slack/master/docs/menus/2026-08-17-2026-08-18-8b36325d5788-startupcampus-menu.png"
 }
